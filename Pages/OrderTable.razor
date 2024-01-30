@@ -1,0 +1,111 @@
+﻿@page "/orderList"
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="text-primary">Order List</h3>
+                <button type="submit" class="btn btn-primary" @onclick="NavigateToOrderForm">+ Take New Order</button>
+            </div>
+
+            <p>These are the orders from customers.</p>
+
+            @if (!orders.Any())
+            {
+               
+                <p><em>No any orders placed yet.</em></p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-center">
+                        <thead>
+                            <tr>
+                                <th>Customer Name</th>
+                                <th>Coffee Ordered</th>
+                                <th>Quantity</th>
+                                <th>Add-ins</th>
+                                <th>Order Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in orders)
+                            {
+                                <tr>
+                                    <td>@order.FullName</td>
+                                    <td>
+                                        @if (order?.Coffee != null)
+                                        {
+                                            <span>@order.Coffee.Name</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Coffee not selected</span>
+                                        }
+                                    </td>
+                                    <td>@order.Quantity</td>
+                                    <td>
+                                        <!-- Check if hobbies exist -->
+                                        @if (order.Addins != null && order.Addins.Any())
+                                        {
+                                            <!-- Display hobbies in a list -->
+                                            <ul class="list-group">
+                                                @foreach (var addin in order.Addins)
+                                                {
+                                                    <li class="list-group-item">@addin.Name</li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <!-- Display a message if no hobbies -->
+                                            <span>No add-ins</span>
+                                        }
+                                    </td>
+                                    <td>NRs. @order.Total</td>
+                                    <td>
+                                        <button type="submit" class="btn btn-sm btn-success" @onclick="@(()=>ProceedToPayment(order.Id))">Receive Payment</button>
+
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // Inject NavigationManager to enable navigation within the application
+    [Inject]
+    private NavigationManager navManager { get; set; }
+
+    // List to store the retrieved orders
+    private List<Order> orders = new List<Order>();
+
+    // This method is called when the component is initialized
+    protected override void OnInitialized()
+    {
+        // Retrieve the list of orders from the data source
+        orders = OrderServices.RetrieveOrderData();
+
+        // Call the base class's OnInitialized method
+        base.OnInitialized();
+    }
+
+    // Navigate to the OrderForm page.
+    private void NavigateToOrderForm()
+    {
+        // Use NavigationManager to navigate to the OrderForm page
+        navManager.NavigateTo("/orderForm");
+    }
+
+    // Proceed to the payment page for a specific order.
+    private void ProceedToPayment(Guid id)
+    {
+        // Use NavigationManager to navigate to the ProceedToPayment page with the specific order ID
+        navManager.NavigateTo($"/proceedToPayment/{id}");
+    }
+}

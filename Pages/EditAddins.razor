@@ -1,0 +1,56 @@
+﻿@page "/editAddins/{Id:guid}"
+@inject NavigationManager NavManager
+
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="col-md-6 p-4 shadow">
+        <h3 class="text-center mb-4">Edit Add-ins Price</h3>
+
+        <!-- EditForm component of Blazor for handling form submission and validation -->
+        <EditForm Model="@addins" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="form-group mb-3">
+                <label for="Name">Name:</label>
+                <!-- InputText component with two-way data binding to the hobby's Name property -->
+                <InputText id="Name" class="form-control" @bind-Value="addins.Name" disabled />
+            </div>
+            <div class="form-group mb-3">
+                <label for="Price">Price:</label>
+                <!-- InputText component with two-way data binding to the hobby's Name property -->
+                <InputText id="Price" class="form-control" @bind-Value="addins.Price" />
+            </div>
+            <!-- Submit button for saving changes -->
+            <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+        </EditForm>
+    </div>
+</div>
+
+
+
+@code {
+    [Parameter] // Parameter to capture the Addins Id from the route above /editAddins/{Id:guid}
+    public Guid Id { get; set; }
+
+    Add_ins addins = new Add_ins();
+
+    protected override void OnInitialized()
+    {
+        addins = Add_insService.GetAddInsById(Id);
+        base.OnInitialized();
+    }
+
+    public void HandleSubmit()
+    {
+        try
+        {
+            Add_insService.EditAddIns(Id, addins.Price);
+
+            App.Current.MainPage.DisplayAlert("Success", $"Price updated successfully.", "OK");
+            NavManager.NavigateTo("/addInsList");
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

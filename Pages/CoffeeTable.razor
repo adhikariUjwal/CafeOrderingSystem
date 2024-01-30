@@ -1,0 +1,50 @@
+﻿@page "/coffeeList"
+
+@using Coursework.Data;
+
+<div class="container p-4">
+    <h3 class="text-primary">Coffee List</h3>
+    <p>These are the available coffees in the Bislerium.</p>
+
+    @if (coffees == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered text-center">
+                <thead>
+                    <tr>
+                        <th>Coffee ID</th>
+                        <th>Coffee Name</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var coffee in coffees)
+                    {
+                        <tr>
+                            <td>@coffee.Id</td>
+                            <td>@coffee.Name</td>
+                            <td>NRs. @coffee.Price</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    public List<Coffee> coffees = new List<Coffee>();
+
+    protected override void OnInitialized()
+    {
+        // Retrieve the list of available hobbies
+        coffees = CoffeeService.RetrieveCoffeeData();
+        Console.WriteLine(coffees);
+        base.OnInitialized();
+    }
+   
+}

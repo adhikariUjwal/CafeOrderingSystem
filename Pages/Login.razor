@@ -1,0 +1,70 @@
+﻿@page "/login"
+@inject NavigationManager NavigationManager
+@inject Auth auth
+
+<div class="container-fluid d-flex align-items-center justify-content-center vh-100">
+    <div class="shadow-lg container rounded" style="width:35%;">
+        <div id="loginbox" class="p-3">
+            <form @onsubmit="ValidateLogin">
+                <h3 class="text-center">
+                    Login
+                </h3>
+                @if (!string.IsNullOrEmpty(Message))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @Message
+                    </div>
+                }
+                <div class="form-group mb-3">
+                    <label class="form-label" for="username">
+                        Username
+                    </label>
+                    <input required id="username" class="form-control" type="text" @bind-value="Username" placeholder="">
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label" for="password">
+                        Password
+                    </label>
+                    <input required id="password" class="form-control" type="password" @bind-value="Password" placeholder="">
+                </div>
+
+               
+
+
+                <div class="form-group mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <span class="text-uppercase text-bold">Login</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    public String Username;
+    public String Password;
+    public String Message;
+
+    // This is just a placeholder. You need to call auth.Login with actual values.
+    // For example, you can call it in a method like ValidateLogin.
+    // auth.Login(Username, Password);
+
+    void ValidateLogin()
+    {
+        auth.Login(Username, Password);
+
+        // Additional logic based on authentication result
+        if (auth.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/orderList");
+        }
+        else
+        {
+            Message = "Invalid Login Credentials";
+        }
+        }
+    }
+

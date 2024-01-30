@@ -1,0 +1,52 @@
+﻿@page "/addAddins"
+@inject NavigationManager NavigationManager
+
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="col-md-8 col-lg-6 col-xl-5 p-4 shadow">
+        <h3 class="text-center mb-4">Add Add-ins</h3>
+
+        <EditForm Model="@addIns" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="form-group">
+                <label for="Add-ins Name">Add-ins Name:</label>
+                <!-- InputText component with two-way data binding to the Name property -->
+                <InputText id="Add-ins Name" class="form-control mb-3" @bind-Value="addIns.Name" />
+            </div>
+            <div class="form-group">
+                <label for="Add-ins Price">Add-ins Price:</label>
+                <!-- InputText component with two-way data binding to the Price property -->
+                <InputText id="Add-ins Price" class="form-control" @bind-Value="addIns.Price" />
+            </div>
+            <br />
+            <!-- Submit button for form submission -->
+            <div class="text-center">
+                <!-- Center the button -->
+                <button type="submit" class="btn btn-primary btn-block w-100">Submit</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+
+
+
+@code {
+
+    Add_ins addIns = new Add_ins();
+
+    private async void HandleValidSubmit()
+    {
+        Add_insService.NewAdd_ins(addIns);
+
+        addIns = new Add_ins();
+
+        NavigationManager.NavigateTo("/addInsList");
+
+        await App.Current.MainPage.DisplayAlert("Add-in Added", "Add-in was added successfully", "OK");
+
+
+    }
+
+}

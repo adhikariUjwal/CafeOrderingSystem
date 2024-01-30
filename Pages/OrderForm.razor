@@ -1,0 +1,137 @@
+﻿@page "/orderForm"
+@inject Auth auth
+@inject NavigationManager NavigationManager
+
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="col-md-8 col-lg-8 col-xl-5 p-4 shadow">
+        <h3 class="text-center mb-4">Take Orders</h3>
+
+        <!-- EditForm to handle form submission -->
+        <EditForm Model="@order" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+
+            <!-- Customer Full Name input -->
+            <div class="form-group mb-3">
+                <ValidationMessage For="@(() => order.FullName)" />
+                <label for="CustomerFullName">Customer Full Name:</label>
+                <InputText class="form-control mb-3" @bind-Value="order.FullName" />
+            </div>
+
+            <!-- Select Coffee dropdown -->
+            <div class="form-group mb-3">
+                <label for="SelectedCoffee">Select Coffee:</label>
+                <select id="SelectedCoffee" class="form-control" @onchange="OnSelectedCoffeeChanged">
+                    @foreach (var coffee in coffees)
+                    {
+                        <option value="@coffee.Id">@coffee.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Quantity of coffee input  -->
+            <div class="form-group mb-3">
+                <label for="Quantity">Quantity:</label>
+                <input type="number" id="Quantity" class="form-control" @bind="order.Quantity" min="1">
+            </div>
+
+            <!-- Select Add-ins dropdown -->
+            <div class="form-group mb-3">
+                <label for="SelectedAddins">Select Add-ins:</label>
+                <select id="Addins" class="form-control" multiple>
+                    @foreach (var addin in addins)
+                    {
+                        <option value="@addin.Id">@addin.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Submit button -->
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary w-100">Submit</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    // Variable to store the selected Coffee Id
+    String selectedCoffeeId;
+
+    // Order object to hold form data
+    Order order = new Order();
+
+    // Lists to store Coffee and Add-ins data
+    List<Coffee> coffees = new List<Coffee>();
+    List<Add_ins> addins = new List<Add_ins>();
+
+    // Variable to store the total order amount
+    int OrderTotal = 0;
+
+    // Event handler for Coffee selection change
+    private void OnSelectedCoffeeChanged(ChangeEventArgs e)
+    {
+        selectedCoffeeId = (e.Value).ToString();
+    }
+
+    // Method to handle form submission
+    public async void HandleValidSubmit()
+    {
+        // Check if a Coffee is selected
+        if (!string.IsNullOrEmpty(selectedCoffeeId))
+        {
+            // Find the selected coffee object
+            order.Coffee = new Coffee
+                {
+                    Id = selectedCoffeeId,
+                    Name = coffees.FirstOrDefault(c => c.Id == selectedCoffeeId)?.Name,
+                    Price = coffees.FirstOrDefault(c => c.Id == selectedCoffeeId)?.Price,
+                };
+
+            // Set the initial order total to the price of the selected coffee
+            OrderTotal = +(int.Parse(order.Coffee.Price)*int.Parse(order.Quantity));
+
+            // Use JavaScript interop to get the selected add-ins Ids from the multiselect JavaScript function
+            var selectedAddins = await JSRuntime.InvokeAsync<List<string>>("multiselect.getSelectedValues", "Addins");
+
+            // Map selected add-ins Ids to Add_ins objects and assign them to the form's Addins property
+            order.Addins = selectedAddins.Select(id =>
+                new Add_ins
+                    {
+                        Id = Guid.Parse(id),
+                        Name = addins.FirstOrDefault(h => h.Id == Guid.Parse(id))?.Name,
+                        Price = addins.FirstOrDefault(h => h.Id == Guid.Parse(id))?.Price
+                    }).ToList();
+
+            // Accumulate the prices of add-ins
+            OrderTotal += order.Addins.Sum(addin => int.Parse(addin.Price));
+
+            // Set the total order amount in the order object
+            order.Total = OrderTotal.ToString();
+
+            // Save form data to JSON file
+            OrderServices.SaveOrderDataInJSON(order);
+
+            // Reset the form object
+            order = new Order();
+
+            // Navigate to the FormData page
+            NavigationManager.NavigateTo("/orderList");
+
+            // Display a success alert
+            await App.Current.MainPage.DisplayAlert("Success", "Order placed successfully", "OK");
+        }
+        else
+        {
+            // Display a failure alert if no coffee is selected
+            await App.Current.MainPage.DisplayAlert("Failure", "Please select a coffee", "OK");
+        }
+    }
+
+    // Method to initialize data on page load
+    protected override void OnInitialized()
+    {
+        coffees = CoffeeService.RetrieveCoffeeData();
+        addins = Add_insService.RetrieveAdd_insData();
+        base.OnInitialized();
+    }
+}

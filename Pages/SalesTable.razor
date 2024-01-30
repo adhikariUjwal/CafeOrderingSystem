@@ -1,0 +1,221 @@
+﻿@page "/salesList"
+@using IronPdf
+
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="text-primary">Sales List</h3>
+                <!-- Download Monthly Sales PDF Button -->
+                <a href="#" class="btn btn-success" id="downloadPdfButton" @onclick="DownloadDailyPDF"> <span class="oi oi-data-transfer-download" aria-hidden="true"></span><b> Download Daily Report</b></a>
+            </div>
+            <p>These are the overall sales of Bislerium.</p>
+
+            @if (sales == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-center">
+                        <thead>
+                            <tr>
+                                <th>Transaction Date</th>
+                                <th>Paid By</th>
+                                <th>Coffee</th>
+                                <th>Quantity</th>
+                                <th>Addins</th>
+                                <th>Total Order Amount</th>
+                                <th>Discount Amount</th>
+                                <th>Payable Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sale in sales)
+                            {
+                                <tr>
+                                    <td>@sale.TransactionDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@sale.PaidBy</td>
+                                    <td>@sale.Coffee.Name</td>
+                                    <td>@sale.Quantity</td>
+                                    <td>
+                                        @if (sale.Addins != null && sale.Addins.Any())
+                                        {
+                                            <ul class="list-group">
+                                                @foreach (var addin in sale.Addins)
+                                                {
+                                                    <li class="list-group-item">@addin.Name</li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <span>No add-ins</span>
+                                        }
+                                    </td>
+                                    <td>NRs. @sale.TotalAmount</td>
+                                    <td class="text-danger">NRs. @sale.DiscountAmount</td>
+                                    <td class="text-success">NRs. @sale.TransactionAmount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<table class="table table-bordered table-hover text-center">
+    <thead>
+        <tr>
+            <th>Addins</th>
+            <th>Quantity</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var coffee in topAddinsList)
+        {
+            <tr>
+                <td>@coffee.Name</td>
+                <td>@coffee.Quantity</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    // Inject NavigationManager to enable navigation within the application
+    [Inject]
+    private NavigationManager navManager { get; set; }
+
+    // List to store the retrieved sales data
+    private List<Sales> sales = new List<Sales>();
+
+    // List to store sales data for the current day
+    private List<Sales> salesTodayList = new List<Sales>();
+
+    // List to store top coffee models representing highest sales for the current day
+    private List<TopCoffeeModel> topCoffeeList = new List<TopCoffeeModel>();
+
+
+    private List<TopAddinsModel> topAddinsList = new List<TopAddinsModel>();
+
+
+    string totalRevenueOfTheDay;
+
+    // This method is called when the component is initialized
+    protected override void OnInitialized()
+    {
+        // Retrieve the list of sales from the data source
+        sales = SalesService.RetrieveSalesData();
+
+        // Reverse the objects in the list to display recent transactions at the top of the table
+        sales.Reverse();
+
+        // Filter sales data for the current day
+        salesTodayList = sales.Where(sale => sale.TransactionDate.Date == DateTime.Now.Date).ToList();
+
+        totalRevenueOfTheDay = salesTodayList.Sum(sale => float.Parse(sale.TotalAmount)).ToString();
+
+        // Group sales data by coffee name, and select top coffee models
+        topCoffeeList = salesTodayList
+             .GroupBy(sale => sale.Coffee.Name)
+             .Select(group => new TopCoffeeModel
+                 {
+                     Name = group.Key,
+                     Quantity = group.Sum(sale => (int.Parse(sale.Quantity))).ToString(),
+                 })
+             .OrderByDescending(coffee => int.Parse(coffee.Quantity))
+             .Take(5)
+             .ToList();
+
+
+        topAddinsList = salesTodayList
+              .SelectMany(sale => sale.Addins)
+              .GroupBy(addin => addin.Name)
+              .Select(group => new TopAddinsModel
+                  {
+                      Name = group.Key,
+                      Quantity = group.Sum(addin => 1).ToString(),
+                  })
+              .OrderByDescending(addin => addin.Quantity)
+              .Take(5)
+              .ToList();
+
+        // Call the base class's OnInitialized method
+        base.OnInitialized();
+
+    }
+
+
+    public void DownloadDailyPDF()
+    {
+
+
+        if (topCoffeeList != null && topCoffeeList.Any())
+        {
+            var pdf = new ChromePdfRenderer();
+
+            var html = "<h1 style='text-align: center; color: #191857;'>Bislerium Cafe</h1>";
+
+            html += $"<h3 style='text-align: center; color: #191857;'>Daily Sales Report - {DateTime.Now.ToString("yyyy/MM/dd")}</h3>";
+
+            html += "<h3 style='color: #191857;'>Top 5 Coffee Sold </h3>";
+            // HTML table for PDF with specified styles
+            html += "<table style='border: 1px solid #191857; width: 100%; border-collapse: collapse;'><thead style='background-color: #191857; color: white; text-align: center;'><tr><th style='border: 1px solid #191857; padding: 8px;'>Coffee Type</th><th style='border: 1px solid #191857; padding: 8px;'>Quantity Sold</th><tbody>";
+
+            // Add data to the table
+            // Loop through daily coffee sales data to add to the PDF table
+            foreach (var dailyCoffeeSale in topCoffeeList)
+            {
+                html += "<tr>";
+                html += $"<td style='border: 1px solid #191857; padding: 8px; text-align: center;'>{dailyCoffeeSale.Name}</td><td style='border: 1px solid #191857; padding: 8px; text-align: center;'>{dailyCoffeeSale.Quantity}</td>";
+                html += "</tr>";
+            }
+
+            html += "</tbody></table>";
+
+            html += "<h3 style='color: #191857;'>Top 5 Addins Sold </h3>";
+
+            html += "<table style='border: 1px solid #191857; width: 100%; border-collapse: collapse;'><thead style='background-color: #191857; color: white; text-align: center;'><tr><th style='border: 1px solid #191857; padding: 8px;'>Addins</th><th style='border: 1px solid #191857; padding: 8px;'>Quantity Sold</th><tbody>";
+
+            foreach (var dailyAddinsSale in topAddinsList)
+            {
+                html += "<tr>";
+                html += $"<td style='border: 1px solid #191857; padding: 8px; text-align: center;'>{dailyAddinsSale.Name}</td><td style='border: 1px solid #191857; padding: 8px; text-align: center;'>{dailyAddinsSale.Quantity}</td>";
+                html += "</tr>";
+            }
+
+
+            html += "</tbody></table>";
+
+            html += $"<br><br><h3 style='color: #191857;'>Total revenue of the day is NRs.{totalRevenueOfTheDay}</h3>";
+
+
+            // Convert HTML to Pdf
+            var pdfStream = pdf.RenderHtmlAsPdf(html).Stream;
+
+            // Save the PDF inside the folder
+            string pdfPath = @"E:\";
+
+            //Combining file FormData.pdf with directory and also creating the pdf file at the same time using FileMode inbuilt class of .net and its method and finally storing it in variable fileStream
+            using (var fileStream = new System.IO.FileStream(Path.Combine(pdfPath, "FormData.pdf"), System.IO.FileMode.Create))
+            {
+                pdfStream.CopyToAsync(fileStream); //copying the data of pdf inside application to the pdf created in you device
+            }
+
+            // Show notification
+            App.Current.MainPage.DisplayAlert("Success", "Report Downloaded Successfully", "OK");
+        }
+
+    }
+
+}
+

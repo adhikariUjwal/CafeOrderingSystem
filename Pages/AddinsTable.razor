@@ -1,0 +1,77 @@
+﻿@page "/addInsList"
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="text-primary">Add-ins List</h3>
+                <button type="submit" class="btn btn-primary" @onclick="NavigateToAddAddinsForm">+ Add New</button>
+            </div>
+            <p>These are the available add-ins in the Bislerium.</p>
+
+            @if (addins == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered text-center">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Price</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var addin in addins)
+                            {
+                                <tr>
+                                    <td>@addin.Name</td>
+                                    <td>NRs. @addin.Price</td>
+                                    <td>
+                                        <!-- Button to navigate to the EditAddins page with the specific add-in ID -->
+                                        <button type="submit" @onclick="@(()=>EditAddins(addin.Id))" class="btn btn-success">Edit</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Inject]
+    private NavigationManager navManager { get; set; }
+
+    public List<Add_ins> addins = new List<Add_ins>();
+
+    protected override void OnInitialized()
+    {
+        // Retrieve the list of available hobbies
+        addins = Add_insService.RetrieveAdd_insData();
+        base.OnInitialized();
+    }
+
+    private void EditAddins(Guid id)
+    {
+        try
+        {
+            navManager.NavigateTo($"/editAddins/{id}");
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine("Error Navigating:"+ex.Message);
+        }
+
+    }
+
+    public void NavigateToAddAddinsForm()
+    {
+        navManager.NavigateTo("/addAddins");
+    }
+}

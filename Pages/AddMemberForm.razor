@@ -1,0 +1,57 @@
+﻿@page "/addMember"
+
+@inject NavigationManager navManager
+
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="col-md-8 col-lg-8 col-xl-5 p-4 shadow">
+        <h3 class="text-center mb-4 color-primary">Add Members</h3>
+
+        <!-- EditForm to handle form submission -->
+        <EditForm Model="@member" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+
+            <!-- Customer Phone Number -->
+            <div class="form-group mb-3">
+                <ValidationMessage For="@(() => member.PhoneNumber)" />
+                <label for="MemberPhoneNumber">Member Phone Number:</label>
+                <InputText class="form-control mb-3" @bind-Value="member.PhoneNumber" />
+            </div>
+
+            <!-- Submit button -->
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary w-100">Register Member</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+@code {
+    private Member member = new Member();
+
+    List<Member> existingMembers = new List<Member>();
+
+    private async void HandleValidSubmit()
+    {
+        member.MembershipStartDate = DateTime.Now;
+
+        // Set MembershipEndDate to one month from MembershipStartDate
+        member.MembershipEndDate = member.MembershipStartDate.AddMonths(1);
+
+        existingMembers = MemberService.RetrieveMemberData();
+
+        if (existingMembers.Any(m => m.PhoneNumber == member.PhoneNumber))
+        {
+            await App.Current.MainPage.DisplayAlert("Alert", "Member already exists.", "OK");
+            navManager.NavigateTo("/addMember");
+        }
+        else
+        {
+            MemberService.AddNewMember(member);
+            new Member();
+            navManager.NavigateTo("/memberList");
+        }
+
+
+    }
+}

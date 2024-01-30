@@ -1,0 +1,98 @@
+﻿@page "/proceedToPayment/{Id:guid}"
+@inject NavigationManager navManager
+
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="col-md-8 col-lg-8 col-xl-5 p-4 shadow">
+        <h3 class="text-center mb-4 color-primary">Proceed To Payment</h3>
+
+        <!-- EditForm to handle form submission -->
+        <form @onsubmit="HandleValidSubmit">
+            <!-- Member Phone Number -->
+            <div class="form-group mb-3">
+                <label for="MemberPhoneNumber">Phone Number:</label>
+                <input type="text" class="form-control mb-3" @bind="PhoneNumber" required/>
+            </div>
+
+            <!-- Proceed  button -->
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary w-100">Proceed</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@code {
+    // The unique identifier for the order
+    [Parameter]
+    public Guid Id { get; set; }
+
+    // The details of the order being processed
+    Order orderDetails = new Order();
+
+    // The details of the sales transaction associated with the order
+    Sales salesDetails = new Sales();
+
+    // The phone number associated with the payment
+    private string PhoneNumber;
+
+    // Flag indicating whether the customer has an active membership
+    private bool hasActiveMembership;
+
+    // The amount to be discounted based on the membership status
+    private float discountAmount;
+    // Method called when the form is successfully submitted
+    private async void HandleValidSubmit()
+    {
+        // Retrieve order details by Id
+        orderDetails = OrderServices.GetOrderById(Id);
+
+        // Check if the customer has an active membership
+        hasActiveMembership = MemberService.CheckMembershipStatus(PhoneNumber);
+
+        // Set transaction date to the current date and time
+        salesDetails.TransactionDate = DateTime.Now;
+
+        // Set the payer's phone number for the sales transaction
+        salesDetails.PaidBy = PhoneNumber;
+
+        // Copy relevant details from the order to the sales transaction
+        salesDetails.Coffee = orderDetails.Coffee;
+        salesDetails.Quantity = orderDetails.Quantity;
+        salesDetails.Addins = orderDetails.Addins;
+        salesDetails.TotalAmount = orderDetails.Total;
+
+        // Apply a 10% discount if the customer has an active membership
+        if (hasActiveMembership)
+        {
+            // Calculate the discount amount based on the total order amount
+            discountAmount = int.Parse(orderDetails.Total) * 0.10f;
+        }
+        else
+        {
+            // No discount for customers without an active membership
+            discountAmount = 0;
+        }
+
+        // Calculate the final transaction amount, considering the discount
+        salesDetails.TransactionAmount = (float.Parse(orderDetails.Total) - discountAmount).ToString();
+
+        //Set the discount amount for the transaction 
+        salesDetails.DiscountAmount = discountAmount.ToString();
+
+        // Add the sales transaction to the sales records
+        SalesService.AddSales(salesDetails);
+
+        // Delete the processed order from the JSON
+        OrderServices.DeleteOrderById(orderDetails.Id);
+
+        // Display a success alert with the transaction details
+        await App.Current.MainPage.DisplayAlert("Success", $"Transaction completed successfully. The payable amount is NRs. {salesDetails.TransactionAmount}", "OK");
+
+        // Create a new Sales object for potential future transactions
+        new Sales();
+
+        // Navigate to the sales list page
+        navManager.NavigateTo("/salesList");
+    }
+}
+

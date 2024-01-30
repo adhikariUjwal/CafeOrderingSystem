@@ -1,0 +1,16 @@
+﻿@inherits LayoutComponentBase
+@inject Auth auth
+
+<div class="page">
+    @if (auth != null && auth.IsLoggedIn)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
+    <main>
+        <article class="content p-4">
+            @Body
+        </article>
+    </main>
+</div>
